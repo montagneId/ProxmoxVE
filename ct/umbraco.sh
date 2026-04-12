@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/montagneid/ProxmoxVE/main/
 # License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
 # Source: https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/linux-nginx?view=aspnetcore-9.0&tabs=linux-ubuntu
 
-APP="Dotnet ASP Web API"
+APP="Umbraco"
 var_tags="${var_tags:-web}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-500}"
