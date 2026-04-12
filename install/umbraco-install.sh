@@ -21,20 +21,20 @@ $STD apt-get install -y \
 
 $STD add-apt-repository -y ppa:dotnet/backports
 $STD apt-get install -y \
-  dotnet-sdk-9.0 \
+  dotnet-sdk-10.0 \
   vsftpd \
   nginx
 msg_ok "Installed Dependencies"
 
-
-cd /var/www/html
-dotnet new install Umbraco.Templates@17.3.0 --force && dotnet new umbraco --force -n "MyProject"   && dotnet run --project "MyProject"
 
 
 
 var_project_name="MyProject"
 read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
 
+cd /var/www/html
+dotnet new install Umbraco.Templates@17.3.2 --force && dotnet new umbraco --force -n "$var_project_name"   && dotnet run --project "$var_project_name"
+  
 msg_info "Setting up FTP Server"
 useradd ftpuser
 FTP_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
