@@ -8,7 +8,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/montagneid/ProxmoxVE/main/
 APP="Dotnet ASP Web API"
 var_tags="${var_tags:-web}"
 var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-1024}"
+var_ram="${var_ram:-500}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-ubuntu}"
 var_version="${var_version:-24.04}"
