@@ -29,7 +29,7 @@ msg_ok "Installed Dependencies"
 var_project_name=""
 read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
 
-cd /var/www/html
+cd /var/www
 dotnet new install Umbraco.Templates@17.3.2 --force
 dotnet new umbraco --force -n "$var_project_name"
 dotnet build
