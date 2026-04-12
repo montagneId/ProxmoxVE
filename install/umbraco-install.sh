@@ -26,14 +26,13 @@ $STD apt-get install -y \
   nginx
 msg_ok "Installed Dependencies"
 
-
-
-
-var_project_name="MyProject"
+var_project_name=""
 read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
 
 cd /var/www/html
-dotnet new install Umbraco.Templates@17.3.2 --force && dotnet new umbraco --force -n "$var_project_name"   && dotnet run --project "$var_project_name"
+dotnet new install Umbraco.Templates@17.3.2 --force
+dotnet new umbraco --force -n "$var_project_name"
+dotnet run --project "$var_project_name"
   
 msg_info "Setting up FTP Server"
 useradd ftpuser
