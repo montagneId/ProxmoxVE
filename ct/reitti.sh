@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/montagneid/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/dedicatedcode/reitti
 
 APP="Reitti"
@@ -106,7 +106,7 @@ EOF
       echo "     rm -rf /opt/photon_data"
       echo
       echo "  2. Follow the inial setup guide again:"
-      echo "     https://github.com/community-scripts/ProxmoxVE/discussions/8737"
+      echo "     https://github.com/montagneid/ProxmoxVE/discussions/8737"
       echo
       echo "  3. Re-download and import Photon data for v1"
       echo
