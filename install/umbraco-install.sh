@@ -37,11 +37,12 @@ read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
 
 cd /var/www
 dotnet new install Umbraco.Templates@17.3.2 --force
-dotnet new umbraco --force -n "$var_project_name" --friendly-name "umbraco" --email "umbraco@umbraco.com" --password "umbracoumbraco" --development-database-type SQLite --telemetry-level "Minimal"
+dotnet new umbraco --force -n "$var_project_name"
 
 cd html
 dotnet build -c Release
-  
+msg_ok "Umbraco CMS Installed"
+
 msg_info "Setting up FTP Server"
 useradd ftpuser
 FTP_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
