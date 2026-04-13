@@ -32,11 +32,12 @@ msg_info "Installing Umbraco.Templates (Patience)"
 cd /var/www
 dotnet new install Umbraco.Templates@17.3.3 --force
 dotnet new umbraco --force -n "$var_project_name"
+msg_ok "Templates installed"
 
 msg_info "Building Umbraco Project"
 cd html
 dotnet build -c Release
-msg_ok "Umbraco CMS Installed"
+msg_ok "Umbraco build"
 
 msg_info "Setting up FTP Server"
 useradd ftpuser
