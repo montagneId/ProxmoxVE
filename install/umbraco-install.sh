@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Joost van den Berg
 # License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
-# Source: https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/linux-nginx?view=aspnetcore-9.0&tabs=linux-ubuntu
+# Source: https://github.com/umbraco/Umbraco-CMS
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -31,12 +31,12 @@ read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
 
 msg_info "Installing Umbraco.Templates (Patience)"
 cd /var/www
-$STD dotnet new install Umbraco.Templates@17.3.3 --force
-$STD dotnet new umbraco --force -n "$var_project_name"
+dotnet new install Umbraco.Templates@17.3.3 --force
+dotnet new umbraco --force -n "$var_project_name"
 
 msg_info "Building Umbraco Project (Patience)"
 cd html
-$STD dotnet build -c Release
+dotnet build -c Release
 msg_ok "Umbraco CMS Installed"
 
 msg_info "Setting up FTP Server"
