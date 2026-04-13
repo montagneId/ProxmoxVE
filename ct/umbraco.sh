@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/montagneid/ProxmoxVE/main/
 # License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/umbraco/Umbraco-CMS
 
-APP="Umbraco CMS"
+APP="Umbraco"
 var_tags="${var_tags:-website}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-500}"
