@@ -19,7 +19,6 @@ $STD apt-get install -y \
   ssh \
   software-properties-common
 
-$STD add-apt-repository -y ppa:dotnet/backports
 $STD apt-get install -y \
   dotnet-sdk-10.0 \
   vsftpd \
@@ -34,7 +33,7 @@ cd /var/www
 dotnet new install Umbraco.Templates@17.3.3 --force
 dotnet new umbraco --force -n "$var_project_name"
 
-msg_info "Building Umbraco Project (Patience)"
+msg_info "Building Umbraco Project"
 cd html
 dotnet build -c Release
 msg_ok "Umbraco CMS Installed"
@@ -99,7 +98,7 @@ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out nginx-cert
 systemctl reload nginx
 msg_ok "Nginx Server Created"
 
-msg_info "Creating Service"
+msg_info "Creating Kestrel Umbraco Service"
 cat <<EOF >/etc/systemd/system/kestrel-umbraco.service
 [Unit]
 Description=Umbraco CMS running on Linux
