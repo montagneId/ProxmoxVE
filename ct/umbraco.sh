@@ -3,10 +3,10 @@ source <(curl -fsSL https://raw.githubusercontent.com/montagneid/ProxmoxVE/main/
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Joost van den Berg
 # License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
-# Source: https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/linux-nginx?view=aspnetcore-9.0&tabs=linux-ubuntu
+# Source: https://github.com/umbraco/Umbraco-CMS
 
 APP="Umbraco"
-var_tags="${var_tags:-web}"
+var_tags="${var_tags:-website}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-500}"
 var_disk="${var_disk:-8}"
@@ -41,4 +41,4 @@ description
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following IP:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}${IP}:80${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}https://${IP}"

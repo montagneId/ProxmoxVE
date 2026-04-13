@@ -26,17 +26,11 @@ $STD apt-get install -y \
   nginx
 msg_ok "Installed Dependencies"
 
-
-mkdir /etc/nginx/certificate
-cd /etc/nginx/certificate
-openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out nginx-certificate.crt -keyout nginx.key
-
-
 var_project_name=""
 read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
 
 cd /var/www
-dotnet new install Umbraco.Templates@17.3.2 --force
+dotnet new install Umbraco.Templates@17.3.3 --force
 dotnet new umbraco --force -n "$var_project_name"
 
 cd html
@@ -95,6 +89,11 @@ server {
   }
 }
 EOF
+
+mkdir /etc/nginx/certificate
+cd /etc/nginx/certificate
+openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out nginx-certificate.crt -keyout nginx.key -subj "/C=NL/ST=State/L=City/O=Organization/CN=localhost"
+
 systemctl reload nginx
 msg_ok "Nginx Server Created"
 
@@ -120,7 +119,7 @@ Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now kestrel-umbraco
-msg_ok "Created Service"
+msg_ok "Created kestrel-umbraco Service"
 
 motd_ssh
 customize
