@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/montagneid/ProxmoxVE/main/
 # License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/umbraco/Umbraco-CMS
 
-APP="Umbraco"
+APP="Umbraco CMS"
 var_tags="${var_tags:-website}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-500}"
@@ -40,5 +40,5 @@ description
 
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following IP:${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}https://${IP}"
