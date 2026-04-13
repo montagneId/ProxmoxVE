@@ -19,6 +19,8 @@ $STD apt-get install -y \
   ssh \
   software-properties-common
 
+$STD add-apt-repository -y ppa:dotnet/backports
+$STD apt-get update
 $STD apt-get install -y \
   dotnet-sdk-10.0 \
   vsftpd \
