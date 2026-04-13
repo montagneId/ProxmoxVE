@@ -26,15 +26,21 @@ $STD apt-get install -y \
   nginx
 msg_ok "Installed Dependencies"
 
+
+mkdir /etc/nginx/certificate
+cd /etc/nginx/certificate
+openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out nginx-certificate.crt -keyout nginx.key
+
+
 var_project_name=""
 read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
 
 cd /var/www
 dotnet new install Umbraco.Templates@17.3.2 --force
-dotnet new umbraco --force -n "$var_project_name"
+dotnet new umbraco --force -n "$var_project_name" --friendly-name "umbraco" --email "umbraco@umbraco.com" --password "umbracoumbraco" --development-database-type SQLite --telemetry-level "Minimal"
 
 cd html
-dotnet build
+dotnet build -c Release
   
 msg_info "Setting up FTP Server"
 useradd ftpuser
@@ -67,10 +73,13 @@ map $http_connection $connection_upgrade {
   default keep-alive;
 }
 server {
-  listen        80;
-  server_name   $var_project_name.com *.$var_project_name.com;
+  listen 443 ssl default_server;
+  listen [::]:443 ssl default_server;
+  ssl_certificate /etc/nginx/certificate/nginx-certificate.crt;
+  ssl_certificate_key /etc/nginx/certificate/nginx.key;
+  server_name   html.com *.html.com;
   location / {
-      proxy_pass         http://127.0.0.1:5000/;
+      proxy_pass         https://127.0.0.1:7000/;
       proxy_http_version 1.1;
       proxy_set_header   Upgrade $http_upgrade;
       proxy_set_header   Connection $connection_upgrade;
@@ -78,6 +87,10 @@ server {
       proxy_cache_bypass $http_upgrade;
       proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header   X-Forwarded-Proto $scheme;
+      proxy_buffering on;
+      proxy_buffer_size 16k;
+      proxy_buffers 8 32k;
+      proxy_busy_buffers_size 64k;
   }
 }
 EOF
@@ -85,26 +98,27 @@ systemctl reload nginx
 msg_ok "Nginx Server Created"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/kestrel-aspnetapi.service
+cat <<EOF >/etc/systemd/system/kestrel-umbraco.service
 [Unit]
-Description=.NET Web API App running on Linux
+Description=Umbraco CMS running on Linux
 
 [Service]
 WorkingDirectory=/var/www/html
-ExecStart=/usr/bin/dotnet /var/www/html/$var_project_name.dll
+ExecStart=/usr/bin/dotnet /var/www/html/bin/Release/net10.0/html.dll --urls "https://0.0.0.0:7000"
 Restart=always
 # Restart service after 10 seconds if the dotnet service crashes:
 RestartSec=10
 KillSignal=SIGINT
-SyslogIdentifier=dotnet-${var_project_name}
+SyslogIdentifier=umbraco
 User=root
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_NOLOGO=true
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now kestrel-aspnetapi
+systemctl enable -q --now kestrel-umbraco
 msg_ok "Created Service"
 
 motd_ssh
