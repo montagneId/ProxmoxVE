@@ -58,19 +58,19 @@ jq --arg pwd "$UMBRACO_PASS" '. + {
 chmod 600 /var/www/html/$var_project_name/appsettings.json
 msg_ok "Umbraco configured"
 
-msg_info "Setting up SQL Server 2025 Repository"
+msg_info "Setting up SQL Server 2022 Repository"
 setup_deb822_repo \
-  "mssql-server-2025" \
+  "mssql-server-2022" \
   "https://packages.microsoft.com/keys/microsoft.asc" \
-  "https://packages.microsoft.com/ubuntu/24.04/mssql-server-2025" \
+  "https://packages.microsoft.com/ubuntu/24.04/mssql-server-2022" \
   "noble" \
   "main"
 msg_ok "Repository configured"
 
-msg_info "Installing and Configuring SQL Server 2025 (Patience)"
+msg_info "Installing and Configuring SQL Server 2022 (Patience)"
 MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
 ACCEPT_EULA=Y MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD" MSSQL_PID=Developer $STD apt-get install -y mssql-server
-msg_ok "Installed SQL Server 2025"
+msg_ok "Installed SQL Server 2022"
 
 msg_info "Installing SQL Server Tools"
 export DEBIAN_FRONTEND=noninteractive
@@ -117,7 +117,7 @@ systemctl restart -q vsftpd.service
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
   echo ""
-  echo "SQL Server 2025 Credentials"
+  echo "SQL Server 2022 Credentials"
   echo "Username: sa"
   echo "Password: $MSSQL_SA_PASSWORD"
   echo "Connection: Server=localhost;User Id=sa;Password=$MSSQL_SA_PASSWORD"
