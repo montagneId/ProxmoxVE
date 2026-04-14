@@ -67,8 +67,9 @@ setup_deb822_repo \
   "main"
 msg_ok "Repository configured"
 
-msg_info "Installing SQL Server 2025 (Patience)"
-$STD apt-get install -y mssql-server
+msg_info "Installing and Configuring SQL Server 2025 (Patience)"
+MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
+ACCEPT_EULA=Y MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD" MSSQL_PID=Developer $STD apt-get install -y mssql-server
 msg_ok "Installed SQL Server 2025"
 
 msg_info "Installing SQL Server Tools"
@@ -86,19 +87,11 @@ $STD apt-get install -y \
 echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >>~/.bash_profile
 msg_ok "Installed SQL Server Tools"
 
-msg_info "Configuring SQL Server"
-MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
-export MSSQL_SA_PASSWORD
-export ACCEPT_EULA=Y
-export MSSQL_PID=Developer
-$STD /opt/mssql/bin/mssql-conf setup accept-eula
-
-# Enable remote connections
+msg_info "Enabling SQL Server Remote Access"
 $STD /opt/mssql/bin/mssql-conf set network.tcpport 1433
 $STD /opt/mssql/bin/mssql-conf set network.ipaddress 0.0.0.0
-
 systemctl restart mssql-server
-msg_ok "SQL Server configured and started"
+msg_ok "SQL Server configured for remote access"
 
 msg_info "Setting up FTP Server"
 useradd ftpuser
