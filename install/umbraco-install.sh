@@ -18,7 +18,16 @@ $STD apt-get update
 $STD apt-get install -y \
   ssh \
   software-properties-common \
-  coreutils
+  coreutils \
+  libc6 \
+  libgcc-s1 \
+  libgssapi-krb5-2 \
+  libicu70 \
+  libssl3 \
+  libstdc++6 \
+  zlib1g \
+  liblber-2.5-0 \
+  libldap-2.5-0
 
 $STD add-apt-repository -y ppa:dotnet/backports
 $STD apt-get update
