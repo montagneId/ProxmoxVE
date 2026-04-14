@@ -36,7 +36,7 @@ $STD dotnet new umbraco --force -n "$var_project_name" --friendly-name "umbraco"
 msg_ok "Project Created"
 
 msg_info "Building Umbraco Project (Patience)"
-cd html/"$var_project_name"
+cd html/$var_project_name
 $STD dotnet build -c Release
 msg_ok "Umbraco build successful"
 
