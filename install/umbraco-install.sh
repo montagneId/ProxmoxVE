@@ -58,6 +58,48 @@ jq --arg pwd "$UMBRACO_PASS" '. + {
 chmod 600 /var/www/html/$var_project_name/appsettings.json
 msg_ok "Umbraco configured"
 
+msg_info "Setting up SQL Server 2025 Repository"
+setup_deb822_repo \
+  "mssql-server-2025" \
+  "https://packages.microsoft.com/keys/microsoft.asc" \
+  "https://packages.microsoft.com/ubuntu/24.04/mssql-server-2025" \
+  "noble" \
+  "main"
+msg_ok "Repository configured"
+
+msg_info "Installing SQL Server 2025 (Patience)"
+$STD apt-get install -y mssql-server
+msg_ok "Installed SQL Server 2025"
+
+msg_info "Installing SQL Server Tools"
+export DEBIAN_FRONTEND=noninteractive
+export ACCEPT_EULA=Y
+setup_deb822_repo \
+  "mssql-release" \
+  "https://packages.microsoft.com/keys/microsoft.asc" \
+  "https://packages.microsoft.com/ubuntu/24.04/prod" \
+  "noble" \
+  "main"
+$STD apt-get install -y \
+  mssql-tools18 \
+  unixodbc-dev
+echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >>~/.bash_profile
+msg_ok "Installed SQL Server Tools"
+
+msg_info "Configuring SQL Server"
+MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
+export MSSQL_SA_PASSWORD
+export ACCEPT_EULA=Y
+export MSSQL_PID=Developer
+$STD /opt/mssql/bin/mssql-conf setup accept-eula
+
+# Enable remote connections
+$STD /opt/mssql/bin/mssql-conf set network.tcpport 1433
+$STD /opt/mssql/bin/mssql-conf set network.ipaddress 0.0.0.0
+
+systemctl restart mssql-server
+msg_ok "SQL Server configured and started"
+
 msg_info "Setting up FTP Server"
 useradd ftpuser
 FTP_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -81,6 +123,11 @@ systemctl restart -q vsftpd.service
   echo "Username: admin"
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
+  echo ""
+  echo "SQL Server 2025 Credentials"
+  echo "Username: sa"
+  echo "Password: $MSSQL_SA_PASSWORD"
+  echo "Connection: Server=localhost;User Id=sa;Password=$MSSQL_SA_PASSWORD"
 } >>~/umbraco.creds
 
 msg_ok "FTP server setup completed"
