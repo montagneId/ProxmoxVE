@@ -17,17 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt-get update
 $STD apt-get install -y \
   ssh \
-  software-properties-common \
-  coreutils \
-  libc6 \
-  libgcc-s1 \
-  libgssapi-krb5-2 \
-  libicu70 \
-  libssl3 \
-  libstdc++6 \
-  zlib1g \
-  liblber-2.5-0 \
-  libldap-2.5-0
+  software-properties-common
 
 $STD add-apt-repository -y ppa:dotnet/backports
 $STD apt-get update
@@ -68,46 +58,6 @@ jq --arg pwd "$UMBRACO_PASS" '. + {
 chmod 600 /var/www/html/$var_project_name/appsettings.json
 msg_ok "Umbraco configured"
 
-msg_info "Setting up SQL Server 2022 Repository"
-setup_deb822_repo \
-  "mssql-server-2022" \
-  "https://packages.microsoft.com/keys/microsoft.asc" \
-  "https://packages.microsoft.com/ubuntu/22.04/mssql-server-2022" \
-  "jammy" \
-  "main"
-msg_ok "Repository configured"
-
-msg_info "Installing SQL Server 2022 (Patience)"
-MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
-ACCEPT_EULA=Y MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD" MSSQL_PID=Developer apt install -y mssql-server &>/dev/null
-msg_ok "Installed SQL Server 2022"
-
-msg_info "Installing SQL Server Tools"
-export DEBIAN_FRONTEND=noninteractive
-export ACCEPT_EULA=Y
-setup_deb822_repo \
-  "mssql-release" \
-  "https://packages.microsoft.com/keys/microsoft.asc" \
-  "https://packages.microsoft.com/ubuntu/22.04/prod" \
-  "jammy" \
-  "main"
-$STD apt-get install -y \
-  mssql-tools18 \
-  unixodbc-dev
-echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >>~/.bash_profile
-source ~/.bash_profile
-msg_ok "Installed SQL Server Tools"
-
-msg_info "Enabling SQL Server Remote Access"
-/opt/mssql/bin/mssql-conf set network.tcpport 1433 &>/dev/null
-/opt/mssql/bin/mssql-conf set network.ipaddress 0.0.0.0 &>/dev/null
-systemctl restart mssql-server &>/dev/null
-msg_ok "Remote access enabled"
-
-msg_info "Cleaning up"
-rm -f /etc/profile.d/debuginfod.sh /etc/profile.d/debuginfod.csh
-msg_ok "Cleaned up"
-
 msg_info "Setting up FTP Server"
 useradd ftpuser
 FTP_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -131,11 +81,6 @@ systemctl restart -q vsftpd.service
   echo "Username: admin"
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
-  echo ""
-  echo "SQL Server 2022 Credentials"
-  echo "Username: sa"
-  echo "Password: $MSSQL_SA_PASSWORD"
-  echo "Connection: Server=localhost;User Id=sa;Password=$MSSQL_SA_PASSWORD"
 } >>~/umbraco.creds
 
 msg_ok "FTP server setup completed"
