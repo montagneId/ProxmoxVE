@@ -32,13 +32,38 @@ var_project_name="umbraco"
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
 $STD dotnet new install Umbraco.Templates@17.3.3 --force
-$STD dotnet new umbraco --force -n "$var_project_name" --friendly-name "umbraco" --email "umbraco@umbraco.com" --password "umbraco@umbraco.com" --development-database-type "SQLite"
+$STD dotnet new umbraco --force -n "$var_project_name"
 msg_ok "Project Created"
 
 msg_info "Building Umbraco Project (Patience)"
 cd /var/www/html/$var_project_name
 $STD dotnet build -c Release
 msg_ok "Umbraco build successful"
+
+msg_info "Configuring Umbraco Unattended Install"
+UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+cat > /var/www/html/$var_project_name/appsettings.json <<JSONEOF
+{
+  "\$schema": "appsettings-schema.json",
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information"
+    }
+  },
+  "Umbraco": {
+    "CMS": {
+      "Unattended": {
+        "InstallUnattended": true,
+        "UnattendedUserName": "admin",
+        "UnattendedUserEmail": "admin@umbraco.local",
+        "UnattendedUserPassword": "$UMBRACO_PASS"
+      }
+    }
+  }
+}
+JSONEOF
+chmod 600 /var/www/html/$var_project_name/appsettings.json
+msg_ok "Umbraco configured"
 
 msg_info "Setting up FTP Server"
 useradd ftpuser
@@ -58,7 +83,12 @@ systemctl restart -q vsftpd.service
   echo "FTP-Credentials"
   echo "Username: ftpuser"
   echo "Password: $FTP_PASS"
-} >>~/ftp.creds
+  echo ""
+  echo "Umbraco Admin Credentials"
+  echo "Username: admin"
+  echo "Email: admin@umbraco.local"
+  echo "Password: $UMBRACO_PASS"
+} >>~/umbraco.creds
 
 msg_ok "FTP server setup completed"
 
@@ -106,7 +136,7 @@ cat <<EOF >/etc/systemd/system/kestrel-umbraco.service
 Description=Umbraco CMS running on Linux
 
 [Service]
-WorkingDirectory=/var/www/html
+WorkingDirectory=/var/www/html/$var_project_name
 ExecStart=/usr/bin/dotnet /var/www/html/"$var_project_name"/bin/Release/net10.0/"$var_project_name".dll --urls "https://0.0.0.0:7000"
 Restart=always
 # Restart service after 10 seconds if the dotnet service crashes:
