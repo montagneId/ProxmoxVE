@@ -69,7 +69,8 @@ setup_deb822_repo \
 msg_ok "Repository configured"
 
 msg_info "Installing SQL Server 2022 (Patience)"
-$STD apt install -y mssql-server
+MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
+ACCEPT_EULA=Y MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD" MSSQL_PID=Developer apt install -y mssql-server &>/dev/null
 msg_ok "Installed SQL Server 2022"
 
 msg_info "Installing SQL Server Tools"
@@ -88,22 +89,11 @@ echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >>~/.bash_profile
 source ~/.bash_profile
 msg_ok "Installed SQL Server Tools"
 
-msg_info "Configuring SQL Server"
-MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
-export MSSQL_SA_PASSWORD
-export ACCEPT_EULA=Y
-export MSSQL_PID=Developer
-/opt/mssql/bin/mssql-conf -n setup accept-eula &>/dev/null
-msg_ok "SQL Server configured"
-
 msg_info "Enabling SQL Server Remote Access"
 /opt/mssql/bin/mssql-conf set network.tcpport 1433 &>/dev/null
 /opt/mssql/bin/mssql-conf set network.ipaddress 0.0.0.0 &>/dev/null
+systemctl restart mssql-server &>/dev/null
 msg_ok "Remote access enabled"
-
-msg_info "Starting SQL Server Service"
-systemctl enable -q --now mssql-server
-msg_ok "SQL Server started"
 
 msg_info "Cleaning up"
 rm -f /etc/profile.d/debuginfod.sh /etc/profile.d/debuginfod.csh
