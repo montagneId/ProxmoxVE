@@ -27,19 +27,18 @@ $STD apt-get install -y \
   nginx
 msg_ok "Installed Dependencies"
 
-var_project_name=""
-read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
+var_project_name="umbraco"
 
-msg_info "Installing Umbraco"
-cd /var/www
+msg_info "Installing Umbraco templates and project (Patience)"
+cd /var/www/html
 $STD dotnet new install Umbraco.Templates@17.3.3 --force
 $STD dotnet new umbraco --force -n "$var_project_name" --friendly-name "umbraco" --email "umbraco@umbraco.com" --password "umbraco@umbraco.com" --development-database-type "SQLite"
 msg_ok "Project Created"
 
-msg_info "Building Umbraco Project"
-cd html
+msg_info "Building Umbraco Project (Patience)"
+cd html/"$var_project_name"
 $STD dotnet build -c Release
-msg_ok "Umbraco build"
+msg_ok "Umbraco build successful"
 
 msg_info "Setting up FTP Server"
 useradd ftpuser
@@ -108,7 +107,7 @@ Description=Umbraco CMS running on Linux
 
 [Service]
 WorkingDirectory=/var/www/html
-ExecStart=/usr/bin/dotnet /var/www/html/bin/Release/net10.0/html.dll --urls "https://0.0.0.0:7000"
+ExecStart=/usr/bin/dotnet /var/www/html/"$var_project_name"/bin/Release/net10.0/"$var_project_name".dll --urls "https://0.0.0.0:7000"
 Restart=always
 # Restart service after 10 seconds if the dotnet service crashes:
 RestartSec=10
@@ -123,7 +122,7 @@ Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now kestrel-umbraco
-msg_ok "Created kestrel-umbraco Service"
+msg_ok "Kestrel Umbraco Service Created"
 
 motd_ssh
 customize
