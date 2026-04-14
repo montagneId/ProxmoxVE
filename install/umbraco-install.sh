@@ -88,9 +88,9 @@ echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >>~/.bash_profile
 msg_ok "Installed SQL Server Tools"
 
 msg_info "Enabling SQL Server Remote Access"
-$STD /opt/mssql/bin/mssql-conf set network.tcpport 1433
-$STD /opt/mssql/bin/mssql-conf set network.ipaddress 0.0.0.0
-systemctl restart mssql-server
+/opt/mssql/bin/mssql-conf set network.tcpport 1433 &>/dev/null
+/opt/mssql/bin/mssql-conf set network.ipaddress 0.0.0.0 &>/dev/null
+systemctl restart mssql-server &>/dev/null
 msg_ok "SQL Server configured for remote access"
 
 msg_info "Setting up FTP Server"
