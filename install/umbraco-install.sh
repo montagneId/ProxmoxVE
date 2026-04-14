@@ -42,26 +42,19 @@ msg_ok "Umbraco build successful"
 
 msg_info "Configuring Umbraco Unattended Install"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-cat > /var/www/html/$var_project_name/appsettings.json <<JSONEOF
-{
-  "\$schema": "appsettings-schema.json",
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Information"
-    }
-  },
+apt-get install -y jq &>/dev/null
+jq --arg pwd "$UMBRACO_PASS" '. + {
   "Umbraco": {
     "CMS": {
       "Unattended": {
         "InstallUnattended": true,
         "UnattendedUserName": "admin",
         "UnattendedUserEmail": "admin@umbraco.local",
-        "UnattendedUserPassword": "$UMBRACO_PASS"
+        "UnattendedUserPassword": $pwd
       }
     }
   }
-}
-JSONEOF
+}' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
 chmod 600 /var/www/html/$var_project_name/appsettings.json
 msg_ok "Umbraco configured"
 
