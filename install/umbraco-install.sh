@@ -30,15 +30,15 @@ msg_ok "Installed Dependencies"
 var_project_name=""
 read -r -p "${TAB3}Type the assembly name of the project: " var_project_name
 
-msg_info "Installing Umbraco.Templates (Patience)"
+msg_info "Installing Umbraco"
 cd /var/www
-dotnet new install Umbraco.Templates@17.3.3 --force
-dotnet new umbraco --force -n "$var_project_name"
-msg_ok "Templates installed"
+$STD dotnet new install Umbraco.Templates@17.3.3 --force
+$STD dotnet new umbraco --force -n "$var_project_name" --friendly-name "umbraco" --email "umbraco@umbraco.com" --password "umbraco@umbraco.com" --development-database-type "SQLite"
+msg_ok "Project Created"
 
 msg_info "Building Umbraco Project"
 cd html
-dotnet build -c Release
+$STD dotnet build -c Release
 msg_ok "Umbraco build"
 
 msg_info "Setting up FTP Server"
