@@ -17,7 +17,8 @@ msg_info "Installing Dependencies"
 $STD apt-get update
 $STD apt-get install -y \
   ssh \
-  software-properties-common
+  software-properties-common \
+  coreutils
 
 $STD add-apt-repository -y ppa:dotnet/backports
 $STD apt-get update
@@ -62,14 +63,13 @@ msg_info "Setting up SQL Server 2022 Repository"
 setup_deb822_repo \
   "mssql-server-2022" \
   "https://packages.microsoft.com/keys/microsoft.asc" \
-  "https://packages.microsoft.com/ubuntu/24.04/mssql-server-2022" \
-  "noble" \
+  "https://packages.microsoft.com/ubuntu/22.04/mssql-server-2022" \
+  "jammy" \
   "main"
 msg_ok "Repository configured"
 
-msg_info "Installing and Configuring SQL Server 2022 (Patience)"
-MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
-ACCEPT_EULA=Y MSSQL_SA_PASSWORD="$MSSQL_SA_PASSWORD" MSSQL_PID=Developer $STD apt-get install -y mssql-server
+msg_info "Installing SQL Server 2022 (Patience)"
+$STD apt install -y mssql-server
 msg_ok "Installed SQL Server 2022"
 
 msg_info "Installing SQL Server Tools"
@@ -78,20 +78,36 @@ export ACCEPT_EULA=Y
 setup_deb822_repo \
   "mssql-release" \
   "https://packages.microsoft.com/keys/microsoft.asc" \
-  "https://packages.microsoft.com/ubuntu/24.04/prod" \
-  "noble" \
+  "https://packages.microsoft.com/ubuntu/22.04/prod" \
+  "jammy" \
   "main"
 $STD apt-get install -y \
   mssql-tools18 \
   unixodbc-dev
 echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >>~/.bash_profile
+source ~/.bash_profile
 msg_ok "Installed SQL Server Tools"
+
+msg_info "Configuring SQL Server"
+MSSQL_SA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9!@#$%' | head -c16)
+export MSSQL_SA_PASSWORD
+export ACCEPT_EULA=Y
+export MSSQL_PID=Developer
+/opt/mssql/bin/mssql-conf -n setup accept-eula &>/dev/null
+msg_ok "SQL Server configured"
 
 msg_info "Enabling SQL Server Remote Access"
 /opt/mssql/bin/mssql-conf set network.tcpport 1433 &>/dev/null
 /opt/mssql/bin/mssql-conf set network.ipaddress 0.0.0.0 &>/dev/null
-systemctl restart mssql-server &>/dev/null
-msg_ok "SQL Server configured for remote access"
+msg_ok "Remote access enabled"
+
+msg_info "Starting SQL Server Service"
+systemctl enable -q --now mssql-server
+msg_ok "SQL Server started"
+
+msg_info "Cleaning up"
+rm -f /etc/profile.d/debuginfod.sh /etc/profile.d/debuginfod.csh
+msg_ok "Cleaned up"
 
 msg_info "Setting up FTP Server"
 useradd ftpuser
