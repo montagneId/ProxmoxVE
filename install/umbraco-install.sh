@@ -14,6 +14,11 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
+$STD apt-get update
+$STD apt-get install -y \
+  ssh \
+  software-properties-common
+
 $STD add-apt-repository -y ppa:dotnet/backports
 $STD apt-get update
 $STD apt-get install -y \
@@ -25,6 +30,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 var_project_name="umbraco"
+read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
