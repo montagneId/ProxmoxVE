@@ -41,6 +41,19 @@ DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 
 systemctl enable -q --now postgresql
 
+# Configure PostgreSQL for remote connections
+PG_CONF=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW config_file')
+PG_HBA=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW hba_file')
+
+# Allow listening on all interfaces
+sed -i "s|#listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
+sed -i "s|listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
+
+# Allow remote connections (0.0.0.0/0 for all IPs, or use specific subnet like 192.168.0.0/16)
+echo "host    all             all             0.0.0.0/0               scram-sha-256" >> "$PG_HBA"
+
+systemctl restart postgresql
+
 su - postgres <<EOF
 psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
