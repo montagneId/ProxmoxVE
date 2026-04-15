@@ -151,6 +151,14 @@ systemctl enable -q --now umbraco-kestrel
 msg_ok "Umbraco Kestrel Service Created"
 
 msg_info "Creating Auto-Publish Service"
+cat <<EOF >/var/www/html/$var_project_name/publish.sh
+#!/usr/bin/env bash
+cd /var/www/html/$var_project_name
+dotnet publish -c Release -o /var/www/html/$var_project_name-publish
+systemctl restart umbraco-kestrel.service
+EOF
+chmod +x /var/www/html/$var_project_name/publish.sh
+
 cat <<EOF >/etc/systemd/system/umbraco-autopublish.service
 [Unit]
 Description=Umbraco Auto-Publish Service
@@ -158,9 +166,7 @@ After=network.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/var/www/html/$var_project_name
-ExecStart=/usr/bin/dotnet publish -c Release -o /var/www/html/$var_project_name-publish
-ExecStartPost=/bin/systemctl restart umbraco-kestrel.service
+ExecStart=/var/www/html/$var_project_name/publish.sh
 User=root
 Environment=DOTNET_NOLOGO=true
 Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
