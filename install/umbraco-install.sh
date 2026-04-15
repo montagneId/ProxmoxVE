@@ -34,6 +34,11 @@ msg_ok "Installed Dependencies"
 var_project_name="umbraco"
 read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name
 
+# Sanitize project name: replace spaces with underscores and remove special characters
+var_project_name=$(echo "$var_project_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
+[[ -z "$var_project_name" ]] && var_project_name="umbraco"
+msg_info "Using project name: $var_project_name"
+
 msg_info "Setting up PostgreSQL Database"
 DB_USER="${var_project_name}_user"
 DB_NAME="${var_project_name}_db"
@@ -70,7 +75,6 @@ msg_ok "Project Created"
 msg_info "Installing Npgsql Package (Patience)"
 cd /var/www/html/$var_project_name
 $STD dotnet add package Our.Umbraco.PostgreSql
-$STD dotnet add package Umbraco.TheStarterKit
 msg_ok "Npgsql Package Installed"
 
 msg_info "Configuring Umbraco Database Connection"
@@ -107,16 +111,17 @@ sed -i "s|#chroot_local_user=YES|chroot_local_user=NO|g" /etc/vsftpd.conf
 systemctl restart -q vsftpd.service
 
 {
-  echo "PostgreSQL Database Credentials"
+  echo "Umbraco Installation Credentials"
+  echo "PostgreSQL Database"
   echo "Database: $DB_NAME"
   echo "Username: $DB_USER"
   echo "Password: $DB_PASS"
   echo ""
-  echo "FTP Credentials"
+  echo "FTP"
   echo "Username: ftpuser"
   echo "Password: $FTP_PASS"
   echo ""
-  echo "Umbraco admin Credentials"
+  echo "Umbraco admin"
   echo "Username: admin"
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
