@@ -94,7 +94,7 @@ jq --arg pwd "$UMBRACO_PASS" \
     }
   }
 }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
-chmod 600 /var/www/html/$var_project_name/appsettings.json
+#chmod 600 /var/www/html/$var_project_name/appsettings.json
 msg_ok "Umbraco configured"
 
 msg_info "Building and publishing project (Patience)"
