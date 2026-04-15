@@ -68,7 +68,7 @@ jq --arg pwd "$UMBRACO_PASS" \
    --arg dbpass "$DB_PASS" '. + {
   "ConnectionStrings": {
     "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
-    "umbracoDbDSN_ProviderName": "Npgsql"
+    "umbracoDbDSN_ProviderName": "Npgsql2"
   },
   "Umbraco": {
     "CMS": {
