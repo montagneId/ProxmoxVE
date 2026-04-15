@@ -127,7 +127,7 @@ systemctl reload nginx
 msg_ok "Nginx Server Created"
 
 msg_info "Creating Kestrel Umbraco Service"
-cat <<EOF >/etc/systemd/system/kestrel-umbraco.service
+cat <<EOF >/etc/systemd/system/umbraco-kestrel.service
 [Unit]
 Description=Umbraco CMS running on Linux
 
@@ -147,8 +147,43 @@ Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now kestrel-umbraco
-msg_ok "Kestrel Umbraco Service Created"
+systemctl enable -q --now umbraco-kestrel
+msg_ok "Umbraco Kestrel Service Created"
+
+msg_info "Creating Auto-Publish Service"
+cat <<EOF >/etc/systemd/system/umbraco-autopublish.service
+[Unit]
+Description=Umbraco Auto-Publish Service
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/html/$var_project_name
+ExecStart=/usr/bin/dotnet publish -c Release -o /var/www/html/$var_project_name-publish
+ExecStartPost=/bin/systemctl restart umbraco-kestrel.service
+User=root
+Environment=DOTNET_NOLOGO=true
+Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF >/etc/systemd/system/umbraco-autopublish.path
+[Unit]
+Description=Monitor Umbraco Source Directory for Changes
+
+[Path]
+PathModified=/var/www/html/$var_project_name
+Unit=umbraco-autopublish.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable -q --now umbraco-autopublish.path
+msg_ok "Auto-Publish Service Created"
 
 motd_ssh
 customize
