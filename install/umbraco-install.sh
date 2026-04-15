@@ -26,27 +26,46 @@ $STD apt-get install -y \
   software-properties-common \
   dotnet-sdk-10.0 \
   vsftpd \
-  nginx
+  nginx \
+  postgresql \
+  postgresql-contrib
 msg_ok "Installed Dependencies"
 
 var_project_name="umbraco"
 read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name
 
+msg_info "Setting up PostgreSQL Database"
+DB_USER="${var_project_name}_user"
+DB_NAME="${var_project_name}_db"
+DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+
+systemctl enable -q --now postgresql
+
+su - postgres <<EOF
+psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
+psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
+EOF
+
+msg_ok "PostgreSQL Database Created"
+
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
 $STD dotnet new install Umbraco.Templates@17.3.3 --force
 $STD dotnet new umbraco --force -n "$var_project_name"
-msg_ok "Project Created"    
+msg_ok "Project Created"
 
-msg_info "Building and publishing project (Patience)"
-cd /var/www/html/$var_project_name
-$STD dotnet publish -c Release -o /var/www/html/$var_project_name-publish
-msg_ok "Umbraco published successfully"
 
 msg_info "Configuring Umbraco Unattended Install"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 apt-get install -y jq &>/dev/null
-jq --arg pwd "$UMBRACO_PASS" '. + {
+jq --arg pwd "$UMBRACO_PASS" \
+   --arg dbname "$DB_NAME" \
+   --arg dbuser "$DB_USER" \
+   --arg dbpass "$DB_PASS" '. + {
+  "ConnectionStrings": {
+    "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
+    "umbracoDbDSN_ProviderName": "Npgsql"
+  },
   "Umbraco": {
     "CMS": {
       "Unattended": {
@@ -60,6 +79,13 @@ jq --arg pwd "$UMBRACO_PASS" '. + {
 }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
 chmod 600 /var/www/html/$var_project_name/appsettings.json
 msg_ok "Umbraco configured"
+
+msg_info "Building and publishing project (Patience)"
+cd /var/www/html/$var_project_name
+$STD dotnet add package Our.Umbraco.PostgreSql
+$STD dotnet publish -c Release -o /var/www/html/$var_project_name-publish
+msg_ok "Umbraco published successfully"
+
 
 msg_info "Setting up FTP Server"
 useradd ftpuser
@@ -76,15 +102,20 @@ sed -i "s|#chroot_local_user=YES|chroot_local_user=NO|g" /etc/vsftpd.conf
 systemctl restart -q vsftpd.service
 
 {
-  echo "FTP-Credentials"
+  echo "PostgreSQL Database Credentials"
+  echo "Database: $DB_NAME"
+  echo "Username: $DB_USER"
+  echo "Password: $DB_PASS"
+  echo ""
+  echo "FTP Credentials"
   echo "Username: ftpuser"
   echo "Password: $FTP_PASS"
   echo ""
-  echo "Umbraco Admin Credentials"
+  echo "Umbraco admin Credentials"
   echo "Username: admin"
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
-} >>~/umbraco.creds
+} >>~/umbraco-setup.creds
 
 msg_ok "FTP server setup completed"
 
