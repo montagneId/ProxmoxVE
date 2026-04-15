@@ -36,12 +36,12 @@ msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
 $STD dotnet new install Umbraco.Templates@17.3.3 --force
 $STD dotnet new umbraco --force -n "$var_project_name"
-msg_ok "Project Created"
+msg_ok "Project Created"    
 
-msg_info "Building Umbraco Project (Patience)"
+msg_info "Building and publishing project (Patience)"
 cd /var/www/html/$var_project_name
-$STD dotnet build -c Release
-msg_ok "Umbraco build successful"
+$STD dotnet publish -c Release -o /var/www/html/$var_project_name-publish
+msg_ok "Umbraco published successfully"
 
 msg_info "Configuring Umbraco Unattended Install"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -132,8 +132,8 @@ cat <<EOF >/etc/systemd/system/kestrel-umbraco.service
 Description=Umbraco CMS running on Linux
 
 [Service]
-WorkingDirectory=/var/www/html/$var_project_name
-ExecStart=/usr/bin/dotnet /var/www/html/"$var_project_name"/bin/Release/net10.0/"$var_project_name".dll --urls "https://0.0.0.0:7000"
+WorkingDirectory=/var/www/html/$var_project_name-publish
+ExecStart=/usr/bin/dotnet /var/www/html/"$var_project_name-publish"/bin/Release/net10.0/"$var_project_name-publish".dll --urls "https://0.0.0.0:7000"
 Restart=always
 # Restart service after 10 seconds if the dotnet service crashes:
 RestartSec=10
