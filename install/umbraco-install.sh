@@ -54,6 +54,10 @@ $STD dotnet new install Umbraco.Templates@17.3.3 --force
 $STD dotnet new umbraco --force -n "$var_project_name"
 msg_ok "Project Created"
 
+msg_info "Installing Npgsql Package (Patience)"
+cd /var/www/html/$var_project_name
+$STD dotnet add package Our.Umbraco.PostgreSql
+msg_ok "Npgsql Package Installed"
 
 msg_info "Configuring Umbraco Unattended Install"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -82,7 +86,6 @@ msg_ok "Umbraco configured"
 
 msg_info "Building and publishing project (Patience)"
 cd /var/www/html/$var_project_name
-$STD dotnet add package Our.Umbraco.PostgreSql
 $STD dotnet publish -c Release -o /var/www/html/$var_project_name-publish
 msg_ok "Umbraco published successfully"
 
