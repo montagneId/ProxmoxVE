@@ -14,14 +14,11 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get update
-$STD apt-get install -y \
-  ssh \
-  software-properties-common
-
 $STD add-apt-repository -y ppa:dotnet/backports
 $STD apt-get update
 $STD apt-get install -y \
+  ssh \
+  software-properties-common \
   dotnet-sdk-10.0 \
   vsftpd \
   nginx
