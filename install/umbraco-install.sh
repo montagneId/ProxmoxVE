@@ -133,7 +133,7 @@ Description=Umbraco CMS running on Linux
 
 [Service]
 WorkingDirectory=/var/www/html/$var_project_name-publish
-ExecStart=/usr/bin/dotnet /var/www/html/"$var_project_name-publish"/bin/Release/net10.0/"$var_project_name-publish".dll --urls "https://0.0.0.0:7000"
+ExecStart=/usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000"
 Restart=always
 # Restart service after 10 seconds if the dotnet service crashes:
 RestartSec=10
