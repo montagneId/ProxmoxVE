@@ -70,6 +70,7 @@ msg_ok "Project Created"
 msg_info "Installing Npgsql Package (Patience)"
 cd /var/www/html/$var_project_name
 $STD dotnet add package Our.Umbraco.PostgreSql
+$STD dotnet add package Umbraco.TheStarterKit
 msg_ok "Npgsql Package Installed"
 
 msg_info "Configuring Umbraco Database Connection"
