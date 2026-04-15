@@ -80,7 +80,7 @@ jq --arg dbname "$DB_NAME" \
    --arg dbpass "$DB_PASS" '. + {
   "ConnectionStrings": {
     "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
-    "umbracoDbDSN_ProviderName": "Npgsql"
+    "umbracoDbDSN_ProviderName": "Npgsql2"
   }
 }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
 msg_ok "Database connection configured"
