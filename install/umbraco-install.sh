@@ -72,30 +72,18 @@ cd /var/www/html/$var_project_name
 $STD dotnet add package Our.Umbraco.PostgreSql
 msg_ok "Npgsql Package Installed"
 
-msg_info "Configuring Umbraco Unattended Install"
+msg_info "Configuring Umbraco Database Connection"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 apt-get install -y jq &>/dev/null
-jq --arg pwd "$UMBRACO_PASS" \
-   --arg dbname "$DB_NAME" \
+jq --arg dbname "$DB_NAME" \
    --arg dbuser "$DB_USER" \
    --arg dbpass "$DB_PASS" '. + {
   "ConnectionStrings": {
     "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
-    "umbracoDbDSN_ProviderName": "Npgsql2"
-  },
-  "Umbraco": {
-    "CMS": {
-      "Unattended": {
-        "InstallUnattended": true,
-        "UnattendedUserName": "admin",
-        "UnattendedUserEmail": "admin@umbraco.local",
-        "UnattendedUserPassword": $pwd
-      }
-    }
+    "umbracoDbDSN_ProviderName": "Npgsql"
   }
 }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
-#chmod 600 /var/www/html/$var_project_name/appsettings.json
-msg_ok "Umbraco configured"
+msg_ok "Database connection configured"
 
 msg_info "Building and publishing project (Patience)"
 cd /var/www/html/$var_project_name
@@ -190,6 +178,10 @@ User=root
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_NOLOGO=true
 Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+Environment=Umbraco__CMS__Unattended__InstallUnattended=true
+Environment=Umbraco__CMS__Unattended__UnattendedUserName=admin
+Environment=Umbraco__CMS__Unattended__UnattendedUserEmail=admin@umbraco.local
+Environment=Umbraco__CMS__Unattended__UnattendedUserPassword=$UMBRACO_PASS
 
 [Install]
 WantedBy=multi-user.target
