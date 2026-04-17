@@ -32,27 +32,20 @@ msg_ok "Installed Dependencies"
 var_project_name="umbraco"
 read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name </dev/tty
 
-# Sanitize project name: replace spaces with underscores and remove special characters
 var_project_name=$(echo "$var_project_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
 [[ -z "$var_project_name" ]] && var_project_name="umbraco"
 msg_info "Using project name: $var_project_name"
 
 PG_VERSION="17" setup_postgresql
-PG_DB_NAME="${var_project_name}_db"
-PG_DB_USER="${var_project_name}_user"
-PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 setup_postgresql_db
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
 $STD dotnet new install Umbraco.Templates@17.3.3 --force
 $STD dotnet new umbraco --force -n "$var_project_name"
-msg_ok "Project Created"
-
-msg_info "Installing Npgsql Package (Patience)"
-cd /var/www/html/$var_project_name
 $STD dotnet add package Our.Umbraco.PostgreSql
-msg_ok "Npgsql Package Installed"
+msg_ok "Project Created"
 
 msg_info "Configuring Umbraco Database Connection"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -72,7 +65,6 @@ cd /var/www/html/$var_project_name
 $STD dotnet publish -c Release -o /var/www/html/$var_project_name-publish
 msg_ok "Umbraco published successfully"
 
-
 msg_info "Setting up FTP Server"
 useradd ftpuser
 FTP_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -86,9 +78,10 @@ sed -i "s|#write_enable=YES|write_enable=YES|g" /etc/vsftpd.conf
 sed -i "s|#chroot_local_user=YES|chroot_local_user=NO|g" /etc/vsftpd.conf
 
 systemctl restart -q vsftpd.service
+msg_ok "FTP server setup completed"
 
 {
-  echo "PostgreSQL Database Credentials"
+  echo "PostgreSQL Credentials"
   echo "Database: $PG_DB_NAME"
   echo "Username: $PG_DB_USER"
   echo "Password: $PG_DB_PASS"
@@ -97,13 +90,11 @@ systemctl restart -q vsftpd.service
   echo "Username: ftpuser"
   echo "Password: $FTP_PASS"
   echo ""
-  echo "Umbraco admin Credentials"
+  echo "Umbraco Credentials"
   echo "Username: admin"
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
-} >>~/umbraco-setup.creds
-
-msg_ok "FTP server setup completed"
+} >>~/umbraco.creds
 
 msg_info "Setting up Nginx Server"
 rm -f /var/www/html/index.nginx-debian.html
