@@ -38,7 +38,10 @@ var_project_name=$(echo "$var_project_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
 msg_info "Using project name: $var_project_name"
 
 PG_VERSION="17" setup_postgresql
-PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" setup_postgresql_db
+PG_DB_NAME="${var_project_name}_db"
+PG_DB_USER="${var_project_name}_user"
+PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+setup_postgresql_db
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
@@ -54,9 +57,9 @@ msg_ok "Npgsql Package Installed"
 msg_info "Configuring Umbraco Database Connection"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 apt-get install -y jq &>/dev/null
-jq --arg dbname "$DB_NAME" \
-   --arg dbuser "$DB_USER" \
-   --arg dbpass "$DB_PASS" '. + {
+jq --arg dbname "$PG_DB_NAME" \
+   --arg dbuser "$PG_DB_USER" \
+   --arg dbpass "$PG_DB_PASS" '. + {
   "ConnectionStrings": {
     "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
     "umbracoDbDSN_ProviderName": "Npgsql2"
@@ -86,9 +89,9 @@ systemctl restart -q vsftpd.service
 
 {
   echo "PostgreSQL Database Credentials"
-  echo "Database: $DB_NAME"
-  echo "Username: $DB_USER"
-  echo "Password: $DB_PASS"
+  echo "Database: $PG_DB_NAME"
+  echo "Username: $PG_DB_USER"
+  echo "Password: $PG_DB_PASS"
   echo ""
   echo "FTP Credentials"
   echo "Username: ftpuser"
