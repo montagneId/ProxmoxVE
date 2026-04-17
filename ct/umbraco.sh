@@ -2,14 +2,14 @@
 source <(curl -fsSL https://raw.githubusercontent.com/montagneid/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Joost van den Berg
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/umbraco/Umbraco-CMS
 
 APP="Umbraco"
 var_tags="${var_tags:-website}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-500}"
-var_disk="${var_disk:-10}"
+var_disk="${var_disk:-8}"
 var_os="${var_os:-ubuntu}"
 var_version="${var_version:-24.04}"
 var_unprivileged="${var_unprivileged:-1}"

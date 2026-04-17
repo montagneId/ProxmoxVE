@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Joost van den Berg
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/umbraco/Umbraco-CMS
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -34,10 +34,6 @@ msg_ok "Installed Dependencies"
 var_project_name="umbraco"
 read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name
 
-var_project_name=$(echo "$var_project_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
-[[ -z "$var_project_name" ]] && var_project_name="umbraco"
-msg_info "Using project name: $var_project_name"
-
 msg_info "Setting up PostgreSQL Database"
 DB_USER="${var_project_name}_user"
 DB_NAME="${var_project_name}_db"
@@ -45,28 +41,24 @@ DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 
 systemctl enable -q --now postgresql
 
-read -r -p "${TAB3}Enable remote PostgreSQL connections? (y/n): " enable_remote
-if [[ "$enable_remote" =~ ^[Yy]$ ]]; then
-  msg_info "Configuring PostgreSQL for remote connections"
-  
-  PG_CONF=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW config_file')
-  PG_HBA=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW hba_file')
+# Configure PostgreSQL for remote connections
+PG_CONF=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW config_file')
+PG_HBA=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW hba_file')
 
-  sed -i "s|#listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
-  sed -i "s|listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
+# Allow listening on all interfaces
+sed -i "s|#listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
+sed -i "s|listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
 
-  echo "host    all             all             0.0.0.0/0               scram-sha-256" >> "$PG_HBA"
+# Allow remote connections (0.0.0.0/0 for all IPs, or use specific subnet like 192.168.0.0/16)
+echo "host    all             all             0.0.0.0/0               scram-sha-256" >> "$PG_HBA"
 
-  systemctl restart postgresql
-  msg_ok "Remote connections enabled"
-else
-  msg_info "PostgreSQL configured for local connections only"
-fi
+systemctl restart postgresql
 
 su - postgres <<EOF
 psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
 EOF
+
 msg_ok "PostgreSQL Database Created"
 
 msg_info "Installing Umbraco templates and project (Patience)"
@@ -78,6 +70,7 @@ msg_ok "Project Created"
 msg_info "Installing Npgsql Package (Patience)"
 cd /var/www/html/$var_project_name
 $STD dotnet add package Our.Umbraco.PostgreSql
+$STD dotnet add package Umbraco.TheStarterKit
 msg_ok "Npgsql Package Installed"
 
 msg_info "Configuring Umbraco Database Connection"
@@ -114,17 +107,16 @@ sed -i "s|#chroot_local_user=YES|chroot_local_user=NO|g" /etc/vsftpd.conf
 systemctl restart -q vsftpd.service
 
 {
-  echo "Umbraco Installation Credentials"
-  echo "PostgreSQL Database"
+  echo "PostgreSQL Database Credentials"
   echo "Database: $DB_NAME"
   echo "Username: $DB_USER"
   echo "Password: $DB_PASS"
   echo ""
-  echo "FTP"
+  echo "FTP Credentials"
   echo "Username: ftpuser"
   echo "Password: $FTP_PASS"
   echo ""
-  echo "Umbraco admin"
+  echo "Umbraco admin Credentials"
   echo "Username: admin"
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
