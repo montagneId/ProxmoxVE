@@ -41,18 +41,26 @@ DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 
 systemctl enable -q --now postgresql
 
-# Configure PostgreSQL for remote connections
-PG_CONF=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW config_file')
-PG_HBA=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW hba_file')
+# Ask user about remote connections
+read -r -p "${TAB3}Enable remote PostgreSQL connections? (y/n): " enable_remote
+if [[ "$enable_remote" =~ ^[Yy]$ ]]; then
+  msg_info "Configuring PostgreSQL for remote connections"
+  
+  PG_CONF=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW config_file')
+  PG_HBA=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW hba_file')
 
-# Allow listening on all interfaces
-sed -i "s|#listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
-sed -i "s|listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
+  # Allow listening on all interfaces
+  sed -i "s|#listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
+  sed -i "s|listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
 
-# Allow remote connections (0.0.0.0/0 for all IPs, or use specific subnet like 192.168.0.0/16)
-echo "host    all             all             0.0.0.0/0               scram-sha-256" >> "$PG_HBA"
+  # Allow remote connections (0.0.0.0/0 for all IPs, or use specific subnet like 192.168.0.0/16)
+  echo "host    all             all             0.0.0.0/0               scram-sha-256" >> "$PG_HBA"
 
-systemctl restart postgresql
+  systemctl restart postgresql
+  msg_ok "Remote connections enabled"
+else
+  msg_info "PostgreSQL configured for local connections only"
+fi
 
 su - postgres <<EOF
 psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
@@ -70,7 +78,6 @@ msg_ok "Project Created"
 msg_info "Installing Npgsql Package (Patience)"
 cd /var/www/html/$var_project_name
 $STD dotnet add package Our.Umbraco.PostgreSql
-$STD dotnet add package Umbraco.TheStarterKit
 msg_ok "Npgsql Package Installed"
 
 msg_info "Configuring Umbraco Database Connection"
