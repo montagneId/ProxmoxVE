@@ -30,65 +30,41 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 var_project_name="umbraco"
-read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name </dev/tty
+read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name
 
 var_project_name=$(echo "$var_project_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
 [[ -z "$var_project_name" ]] && var_project_name="umbraco"
 msg_info "Using project name: $var_project_name"
 
-read -r -p "${TAB3}Choose database (1=PostgreSQL, 2=SQLite): " db_choice </dev/tty
-
-if [[ "$db_choice" == "1" ]]; then
-  DB_TYPE="postgresql"
-  msg_info "Setting up PostgreSQL"
-  PG_VERSION="17" setup_postgresql
-  PG_DB_NAME="${var_project_name}_db"
-  PG_DB_USER="${var_project_name}_user"
-  PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-  setup_postgresql_db
-  msg_ok "PostgreSQL configured"
-else
-  DB_TYPE="sqlite"
-  msg_info "Using SQLite database"
-fi
+PG_VERSION="17" setup_postgresql
+PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+setup_postgresql_db
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
 $STD dotnet new install Umbraco.Templates@17.3.3 --force
 $STD dotnet new umbraco --force -n "$var_project_name"
-
-if [[ "$DB_TYPE" == "postgresql" ]]; then
-  $STD dotnet add package Our.Umbraco.PostgreSql
-fi
+$STD dotnet add package Our.Umbraco.PostgreSql
 msg_ok "Project Created"
 
 msg_info "Configuring Umbraco Database Connection"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 apt-get install -y jq &>/dev/null
-
-if [[ "$DB_TYPE" == "postgresql" ]]; then
-  jq --arg dbname "$PG_DB_NAME" \
-     --arg dbuser "$PG_DB_USER" \
-     --arg dbpass "$PG_DB_PASS" '. + {
-    "ConnectionStrings": {
-      "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
-      "umbracoDbDSN_ProviderName": "Npgsql2"
-    }
-  }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
-else
-  jq '. + {
-    "ConnectionStrings": {
-      "umbracoDbDSN": "Data Source=|DataDirectory|/Umbraco.sqlite.db;Cache=Shared;Foreign Keys=True;Pooling=True",
-      "umbracoDbDSN_ProviderName": "Microsoft.Data.Sqlite"
-    }
-  }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
-fi
+jq --arg dbname "$PG_DB_NAME" \
+   --arg dbuser "$PG_DB_USER" \
+   --arg dbpass "$PG_DB_PASS" '. + {
+  "ConnectionStrings": {
+    "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
+    "umbracoDbDSN_ProviderName": "Npgsql2"
+  }
+}' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
 msg_ok "Database connection configured"
 
 msg_info "Building and publishing project (Patience)"
 cd /var/www/html/$var_project_name
 $STD dotnet publish -c Release -o /var/www/html/$var_project_name-publish
 msg_ok "Umbraco published successfully"
+
 
 msg_info "Setting up FTP Server"
 useradd ftpuser
@@ -103,20 +79,13 @@ sed -i "s|#write_enable=YES|write_enable=YES|g" /etc/vsftpd.conf
 sed -i "s|#chroot_local_user=YES|chroot_local_user=NO|g" /etc/vsftpd.conf
 
 systemctl restart -q vsftpd.service
-msg_ok "FTP server setup completed"
 
 {
-  if [[ "$DB_TYPE" == "postgresql" ]]; then
-    echo "PostgreSQL Credentials"
-    echo "Database: $PG_DB_NAME"
-    echo "Username: $PG_DB_USER"
-    echo "Password: $PG_DB_PASS"
-    echo ""
-  else
-    echo "Database: SQLite (file-based)"
-    echo "Location: /var/www/html/$var_project_name-publish/umbraco/Data/Umbraco.sqlite.db"
-    echo ""
-  fi
+  echo "PostgreSQL Credentials"
+  echo "Database: $PG_DB_NAME"
+  echo "Username: $PG_DB_USER"
+  echo "Password: $PG_DB_PASS"
+  echo ""
   echo "FTP Credentials"
   echo "Username: ftpuser"
   echo "Password: $FTP_PASS"
@@ -126,6 +95,8 @@ msg_ok "FTP server setup completed"
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
 } >>~/umbraco.creds
+
+msg_ok "FTP server setup completed"
 
 msg_info "Setting up Nginx Server"
 rm -f /var/www/html/index.nginx-debian.html
