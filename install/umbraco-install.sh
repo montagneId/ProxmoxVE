@@ -26,48 +26,19 @@ $STD apt-get install -y \
   software-properties-common \
   dotnet-sdk-10.0 \
   vsftpd \
-  nginx \
-  postgresql \
-  postgresql-contrib
+  nginx
 msg_ok "Installed Dependencies"
 
 var_project_name="umbraco"
-read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name
+read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name </dev/tty
 
-msg_info "Setting up PostgreSQL Database"
-DB_USER="${var_project_name}_user"
-DB_NAME="${var_project_name}_db"
-DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+# Sanitize project name: replace spaces with underscores and remove special characters
+var_project_name=$(echo "$var_project_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
+[[ -z "$var_project_name" ]] && var_project_name="umbraco"
+msg_info "Using project name: $var_project_name"
 
-systemctl enable -q --now postgresql
-
-# Ask user about remote connections
-read -r -p "${TAB3}Enable remote PostgreSQL connections? (y/n): " enable_remote
-if [[ "$enable_remote" =~ ^[Yy]$ ]]; then
-  msg_info "Configuring PostgreSQL for remote connections"
-  
-  PG_CONF=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW config_file')
-  PG_HBA=$(sudo -u postgres psql -t -P format=unaligned -c 'SHOW hba_file')
-
-  # Allow listening on all interfaces
-  sed -i "s|#listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
-  sed -i "s|listen_addresses = 'localhost'|listen_addresses = '*'|g" "$PG_CONF"
-
-  # Allow remote connections (0.0.0.0/0 for all IPs, or use specific subnet like 192.168.0.0/16)
-  echo "host    all             all             0.0.0.0/0               scram-sha-256" >> "$PG_HBA"
-
-  systemctl restart postgresql
-  msg_ok "Remote connections enabled"
-else
-  msg_info "PostgreSQL configured for local connections only"
-fi
-
-su - postgres <<EOF
-psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
-EOF
-
-msg_ok "PostgreSQL Database Created"
+PG_VERSION="17" setup_postgresql
+PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" setup_postgresql_db
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
