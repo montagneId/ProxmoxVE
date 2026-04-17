@@ -36,28 +36,53 @@ var_project_name=$(echo "$var_project_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
 [[ -z "$var_project_name" ]] && var_project_name="umbraco"
 msg_info "Using project name: $var_project_name"
 
-PG_VERSION="17" setup_postgresql
-PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-setup_postgresql_db
+read -r -p "${TAB3}Choose database (1=PostgreSQL, 2=SQLite): " db_choice </dev/tty
+
+if [[ "$db_choice" == "1" ]]; then
+  DB_TYPE="postgresql"
+  msg_info "Setting up PostgreSQL"
+  PG_VERSION="17" setup_postgresql
+  PG_DB_NAME="${var_project_name}_db"
+  PG_DB_USER="${var_project_name}_user"
+  PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+  setup_postgresql_db
+  msg_ok "PostgreSQL configured"
+else
+  DB_TYPE="sqlite"
+  msg_info "Using SQLite database"
+fi
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
 $STD dotnet new install Umbraco.Templates@17.3.3 --force
 $STD dotnet new umbraco --force -n "$var_project_name"
-$STD dotnet add package Our.Umbraco.PostgreSql
+
+if [[ "$DB_TYPE" == "postgresql" ]]; then
+  $STD dotnet add package Our.Umbraco.PostgreSql
+fi
 msg_ok "Project Created"
 
 msg_info "Configuring Umbraco Database Connection"
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 apt-get install -y jq &>/dev/null
-jq --arg dbname "$PG_DB_NAME" \
-   --arg dbuser "$PG_DB_USER" \
-   --arg dbpass "$PG_DB_PASS" '. + {
-  "ConnectionStrings": {
-    "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
-    "umbracoDbDSN_ProviderName": "Npgsql2"
-  }
-}' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
+
+if [[ "$DB_TYPE" == "postgresql" ]]; then
+  jq --arg dbname "$PG_DB_NAME" \
+     --arg dbuser "$PG_DB_USER" \
+     --arg dbpass "$PG_DB_PASS" '. + {
+    "ConnectionStrings": {
+      "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
+      "umbracoDbDSN_ProviderName": "Npgsql2"
+    }
+  }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
+else
+  jq '. + {
+    "ConnectionStrings": {
+      "umbracoDbDSN": "Data Source=|DataDirectory|/Umbraco.sqlite.db;Cache=Shared;Foreign Keys=True;Pooling=True",
+      "umbracoDbDSN_ProviderName": "Microsoft.Data.Sqlite"
+    }
+  }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
+fi
 msg_ok "Database connection configured"
 
 msg_info "Building and publishing project (Patience)"
@@ -81,11 +106,17 @@ systemctl restart -q vsftpd.service
 msg_ok "FTP server setup completed"
 
 {
-  echo "PostgreSQL Credentials"
-  echo "Database: $PG_DB_NAME"
-  echo "Username: $PG_DB_USER"
-  echo "Password: $PG_DB_PASS"
-  echo ""
+  if [[ "$DB_TYPE" == "postgresql" ]]; then
+    echo "PostgreSQL Credentials"
+    echo "Database: $PG_DB_NAME"
+    echo "Username: $PG_DB_USER"
+    echo "Password: $PG_DB_PASS"
+    echo ""
+  else
+    echo "Database: SQLite (file-based)"
+    echo "Location: /var/www/html/$var_project_name-publish/umbraco/Data/Umbraco.sqlite.db"
+    echo ""
+  fi
   echo "FTP Credentials"
   echo "Username: ftpuser"
   echo "Password: $FTP_PASS"
