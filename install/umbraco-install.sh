@@ -40,7 +40,7 @@ setup_postgresql_db
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
-$STD dotnet new install Umbraco.Templates@17.3.3 --force
+$STD dotnet new install Umbraco.Templates@17.3.4 --force
 $STD dotnet new umbraco --force -n "$var_project_name"
 $STD dotnet add package Our.Umbraco.PostgreSql
 msg_ok "Project Created"
