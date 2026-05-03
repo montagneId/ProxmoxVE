@@ -62,7 +62,7 @@ else
   apt-get install -y jq &>/dev/null
   jq '. + {
     "ConnectionStrings": {
-      "umbracoDbDSN": "",
+      "umbracoDbDSN": "Data Source=|DataDirectory|/Umbraco.sqlite.db;Cache=Shared;Foreign Keys=True;Pooling=True",
       "umbracoDbDSN_ProviderName": "Microsoft.Data.Sqlite"
     }
   }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
