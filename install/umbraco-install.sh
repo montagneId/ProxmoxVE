@@ -35,6 +35,12 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   PG_VERSION="17" setup_postgresql
   PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
   setup_postgresql_db
+  
+  msg_info "Configuring PostgreSQL for remote connections"
+  sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/17/main/postgresql.conf
+  echo "host    all             all             0.0.0.0/0               scram-sha-256" >> /etc/postgresql/17/main/pg_hba.conf
+  systemctl restart postgresql
+  msg_ok "PostgreSQL configured for remote access"
 fi
 
 msg_info "Installing Umbraco templates and project (Patience)"
