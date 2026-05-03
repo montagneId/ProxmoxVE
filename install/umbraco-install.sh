@@ -44,11 +44,11 @@ $STD dotnet new umbraco --force -n "$var_project_name"
 
 cd /var/www/html/$var_project_name
 
+UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   $STD dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
   $STD dotnet add package Our.Umbraco.PostgreSql
-
-  UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
   apt-get install -y jq &>/dev/null
   jq --arg dbname "$PG_DB_NAME" \
     --arg dbuser "$PG_DB_USER" \
