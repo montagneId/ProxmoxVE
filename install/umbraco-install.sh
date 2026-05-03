@@ -27,7 +27,7 @@ $STD apt-get install -y \
   nginx
 msg_ok "Installed Dependencies"
 
-var_project_name="umbraco"
+var_project_name="cms"
 
 read -r -p "${TAB3}Would you like to remote database connection? <y/N> " prompt
 
