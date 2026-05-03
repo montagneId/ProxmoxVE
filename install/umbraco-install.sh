@@ -28,15 +28,14 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 var_project_name="umbraco"
-read -r -p "${TAB3}Type the name of the Umbraco project: " var_project_name
 
-var_project_name=$(echo "$var_project_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
-[[ -z "$var_project_name" ]] && var_project_name="umbraco"
-msg_info "Using project name: $var_project_name"
+read -r -p "${TAB3}Would you like to remote database connection? <y/N> " prompt
 
-PG_VERSION="17" setup_postgresql
-PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-setup_postgresql_db
+if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
+  PG_VERSION="17" setup_postgresql
+  PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+  setup_postgresql_db
+fi
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
@@ -44,21 +43,23 @@ $STD dotnet new install Umbraco.Templates@17.3.4 --force
 $STD dotnet new umbraco --force -n "$var_project_name"
 
 cd /var/www/html/$var_project_name
-$STD dotnet add package Our.Umbraco.PostgreSql
-msg_ok "Project Created"
 
-msg_info "Configuring Umbraco Database Connection"
-UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-apt-get install -y jq &>/dev/null
-jq --arg dbname "$PG_DB_NAME" \
-   --arg dbuser "$PG_DB_USER" \
-   --arg dbpass "$PG_DB_PASS" '. + {
-  "ConnectionStrings": {
-    "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
-    "umbracoDbDSN_ProviderName": "Npgsql2"
-  }
-}' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
-msg_ok "Database connection configured"
+if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
+  $STD dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
+  $STD dotnet add package Our.Umbraco.PostgreSql
+
+  UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+  apt-get install -y jq &>/dev/null
+  jq --arg dbname "$PG_DB_NAME" \
+    --arg dbuser "$PG_DB_USER" \
+    --arg dbpass "$PG_DB_PASS" '. + {
+    "ConnectionStrings": {
+      "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
+      "umbracoDbDSN_ProviderName": "Npgsql2"
+    }
+  }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
+fi
+msg_ok "Project Created"
 
 msg_info "Building and publishing project (Patience)"
 cd /var/www/html/$var_project_name
@@ -80,11 +81,13 @@ sed -i "s|#chroot_local_user=YES|chroot_local_user=NO|g" /etc/vsftpd.conf
 systemctl restart -q vsftpd.service
 
 {
-  echo "PostgreSQL Credentials"
-  echo "Database: $PG_DB_NAME"
-  echo "Username: $PG_DB_USER"
-  echo "Password: $PG_DB_PASS"
-  echo ""
+  if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
+    echo "PostgreSQL Credentials"
+    echo "Database: $PG_DB_NAME"
+    echo "Username: $PG_DB_USER"
+    echo "Password: $PG_DB_PASS"
+    echo ""
+  fi
   echo "FTP Credentials"
   echo "Username: ftpuser"
   echo "Password: $FTP_PASS"
