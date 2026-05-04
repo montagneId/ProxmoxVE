@@ -17,9 +17,16 @@ msg_info "Installing Dependencies"
 $STD apt-get update
 $STD apt-get install -y \
   ssh \
-  software-properties-common
+  curl \
+  wget
 
-$STD add-apt-repository -y ppa:dotnet/backports
+msg_info "Adding Microsoft .NET repository"
+wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+$STD dpkg -i packages-microsoft-prod.deb
+rm packages-microsoft-prod.deb
+msg_ok "Microsoft .NET repository added"
+
+msg_info "Installing .NET SDK 10.0 and other packages"
 $STD apt-get update
 $STD apt-get install -y \
   dotnet-sdk-10.0 \
@@ -45,7 +52,7 @@ fi
 
 msg_info "Installing Umbraco templates and project (Patience)"
 cd /var/www/html
-$STD dotnet new install Umbraco.Templates@17.3.4 --force
+$STD dotnet new install Umbraco.Templates
 $STD dotnet new umbraco --force -n "$var_project_name"
 
 cd /var/www/html/$var_project_name
