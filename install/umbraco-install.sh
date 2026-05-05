@@ -107,19 +107,7 @@ else
 fi
 msg_ok "Database connection and unattended setup configured"
 
-{
-  if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
-    echo "PostgreSQL Credentials"
-    echo "Database: $PG_DB_NAME"
-    echo "Username: $PG_DB_USER"
-    echo "Password: $PG_DB_PASS"
-    echo ""
-  fi
-  echo "Umbraco Credentials"
-  echo "Username: admin"
-  echo "Email: admin@umbraco.local"
-  echo "Password: $UMBRACO_PASS"
-} >>~/umbraco.creds
+ln -sf /var/www/html/$var_project_name/appsettings.json ~/umbraco.creds
 
 msg_info "Setting up Nginx Server"
 rm -f /var/www/html/index.nginx-debian.html
@@ -158,24 +146,9 @@ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out nginx-cert
 systemctl reload nginx
 msg_ok "Nginx Server created"
 
-msg_info "Creating cleanup script for unattended config"
-cat <<EOF >/usr/local/bin/umbraco-cleanup-unattended.sh
-#!/usr/bin/env bash
-sleep 30
-for APPSETTINGS_FILE in "/var/www/html/$var_project_name/appsettings.json" "/var/www/html/$var_project_name-publish/appsettings.json"; do
-  if [ -f "\$APPSETTINGS_FILE" ]; then
-    if command -v jq >/dev/null 2>&1; then
-      jq 'del(.Umbraco.CMS.Unattended)' "\$APPSETTINGS_FILE" > "\${APPSETTINGS_FILE}.tmp" && mv "\${APPSETTINGS_FILE}.tmp" "\$APPSETTINGS_FILE"
-    fi
-  fi
-done
-EOF
-chmod +x /usr/local/bin/umbraco-cleanup-unattended.sh
-
 msg_info "Creating Kestrel startup script"
 cat <<EOF >/usr/local/bin/umbraco-start.sh
 #!/usr/bin/env bash
-# Start Umbraco
 /usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000" &
 DOTNET_PID=\$!
 
@@ -198,7 +171,6 @@ Description=Umbraco CMS running on Linux
 [Service]
 WorkingDirectory=/var/www/html/$var_project_name-publish
 ExecStart=/usr/local/bin/umbraco-start.sh
-#ExecStartPost=/usr/local/bin/umbraco-cleanup-unattended.sh
 Restart=always
 RestartSec=10
 KillSignal=SIGINT
