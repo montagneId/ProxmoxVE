@@ -81,8 +81,6 @@ else
 fi
 msg_ok "Project Created"
 
-
-
 {
   if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
     echo "PostgreSQL Credentials"
@@ -100,9 +98,9 @@ msg_ok "Project Created"
 msg_info "Setting up Nginx Server"
 rm -f /var/www/html/index.nginx-debian.html
 
-sed "s/\$var_project_name/$var_project_name/g" >myfile <<'EOF' >/etc/nginx/sites-available/default
-map $http_connection $connection_upgrade {
-  "~*Upgrade" $http_connection;
+cat <<EOF >/etc/nginx/sites-available/default
+map \$http_connection \$connection_upgrade {
+  "~*Upgrade" \$http_connection;
   default keep-alive;
 }
 server {
@@ -114,12 +112,12 @@ server {
   location / {
       proxy_pass         https://127.0.0.1:7000/;
       proxy_http_version 1.1;
-      proxy_set_header   Upgrade $http_upgrade;
-      proxy_set_header   Connection $connection_upgrade;
-      proxy_set_header   Host $host;
-      proxy_cache_bypass $http_upgrade;
-      proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header   X-Forwarded-Proto $scheme;
+      proxy_set_header   Upgrade \$http_upgrade;
+      proxy_set_header   Connection \$connection_upgrade;
+      proxy_set_header   Host \$host;
+      proxy_cache_bypass \$http_upgrade;
+      proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+      proxy_set_header   X-Forwarded-Proto \$scheme;
       proxy_buffering on;
       proxy_buffer_size 16k;
       proxy_buffers 8 32k;
