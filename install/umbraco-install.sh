@@ -21,7 +21,7 @@ $STD apt-get install -y \
   wget
 
 msg_info "Adding Microsoft .NET repository"
-wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+wget https://packages.microsoft.com/config/debian/$(lsb_release -rs | cut -d. -f1)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 $STD dpkg -i packages-microsoft-prod.deb
 rm packages-microsoft-prod.deb
 msg_ok "Microsoft .NET repository added"
@@ -30,7 +30,6 @@ msg_info "Installing .NET SDK 10.0 and other packages"
 $STD apt-get update
 $STD apt-get install -y \
   dotnet-sdk-10.0 \
-  vsftpd \
   nginx
 msg_ok "Installed Dependencies"
 
@@ -87,20 +86,6 @@ cd /var/www/html/$var_project_name
 $STD dotnet publish -c Release -o /var/www/html/$var_project_name-publish
 msg_ok "Umbraco published successfully"
 
-msg_info "Setting up FTP Server"
-useradd ftpuser
-FTP_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-usermod --password $(echo ${FTP_PASS} | openssl passwd -1 -stdin) ftpuser
-mkdir -p /var/www/html
-usermod -d /var/www/html ftp
-usermod -d /var/www/html ftpuser
-chown ftpuser /var/www/html
-
-sed -i "s|#write_enable=YES|write_enable=YES|g" /etc/vsftpd.conf
-sed -i "s|#chroot_local_user=YES|chroot_local_user=NO|g" /etc/vsftpd.conf
-
-systemctl restart -q vsftpd.service
-
 {
   if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
     echo "PostgreSQL Credentials"
@@ -109,17 +94,11 @@ systemctl restart -q vsftpd.service
     echo "Password: $PG_DB_PASS"
     echo ""
   fi
-  echo "FTP Credentials"
-  echo "Username: ftpuser"
-  echo "Password: $FTP_PASS"
-  echo ""
   echo "Umbraco Credentials"
   echo "Username: admin"
   echo "Email: admin@umbraco.local"
   echo "Password: $UMBRACO_PASS"
 } >>~/umbraco.creds
-
-msg_ok "FTP server setup completed"
 
 msg_info "Setting up Nginx Server"
 rm -f /var/www/html/index.nginx-debian.html
