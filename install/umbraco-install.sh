@@ -17,21 +17,22 @@ msg_info "Installing Dependencies"
 $STD apt-get update
 $STD apt-get install -y \
   curl \
-  wget
+  wget \
+  ca-certificates
 
-msg_info "Adding Microsoft .NET repository"
-DEBIAN_VERSION=$(lsb_release -rs)
-DEBIAN_MAJOR="${DEBIAN_VERSION%%.*}"
-wget https://packages.microsoft.com/config/debian/${DEBIAN_MAJOR}/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-$STD dpkg -i packages-microsoft-prod.deb
-rm packages-microsoft-prod.deb
-msg_ok "Microsoft .NET repository added"
+msg_info "Installing .NET SDK 10.0 using Microsoft install script"
+wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
+chmod +x dotnet-install.sh
+$STD ./dotnet-install.sh --channel 10.0 --install-dir /usr/share/dotnet
+rm dotnet-install.sh
 
-msg_info "Installing .NET SDK 10.0 and other packages"
-$STD apt-get update
-$STD apt-get install -y \
-  dotnet-sdk-10.0 \
-  nginx
+# Create symlinks for global access
+ln -sf /usr/share/dotnet/dotnet /usr/bin/dotnet
+export DOTNET_ROOT=/usr/share/dotnet
+export PATH=$PATH:$DOTNET_ROOT
+
+msg_info "Installing Nginx"
+$STD apt-get install -y nginx
 msg_ok "Installed Dependencies"
 
 var_project_name="cms"
