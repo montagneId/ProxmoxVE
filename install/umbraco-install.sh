@@ -137,27 +137,6 @@ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out nginx-cert
 systemctl reload nginx
 msg_ok "Nginx Server created"
 
-msg_info "Creating publish script"
-cat <<EOF >/var/www/html/$var_project_name/publish.sh
-#!/usr/bin/env bash
-cd /var/www/html/$var_project_name
-dotnet publish -c Release -o /var/www/html/$var_project_name-publish
-systemctl restart umbraco-kestrel.service
-EOF
-chmod +x /var/www/html/$var_project_name/publish.sh
-
-msg_info "Building and publishing project (Patience)"
-$STD /var/www/html/$var_project_name/publish.sh
-msg_ok "Umbraco published successfully"
-
-msg_info "Creating unattended setup environment file"
-cat <<EOF >/var/www/html/$var_project_name-publish/.env.unattended
-Umbraco__CMS__Unattended__InstallUnattended=true
-Umbraco__CMS__Unattended__UnattendedUserName=admin
-Umbraco__CMS__Unattended__UnattendedUserEmail=admin@umbraco.local
-Umbraco__CMS__Unattended__UnattendedUserPassword=$UMBRACO_PASS
-EOF
-
 msg_info "Creating Kestrel Umbraco Service"
 cat <<EOF >/etc/systemd/system/umbraco-kestrel.service
 [Unit]
@@ -166,7 +145,6 @@ Description=Umbraco CMS running on Linux
 [Service]
 WorkingDirectory=/var/www/html/$var_project_name-publish
 ExecStart=/usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000"
-ExecStartPost=/bin/sh -c 'sleep 30 && rm -f /var/www/html/$var_project_name-publish/.env.unattended'
 Restart=always
 RestartSec=10
 KillSignal=SIGINT
@@ -175,13 +153,30 @@ User=root
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_NOLOGO=true
 Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
-EnvironmentFile=-/var/www/html/$var_project_name-publish/.env.unattended
+Environment=Umbraco__CMS__Unattended__InstallUnattended=true
+Environment=Umbraco__CMS__Unattended__UnattendedUserName=admin
+Environment=Umbraco__CMS__Unattended__UnattendedUserEmail=admin@umbraco.local
+Environment=Umbraco__CMS__Unattended__UnattendedUserPassword=$UMBRACO_PASS
 
 [Install]
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now umbraco-kestrel
 msg_ok "Umbraco Kestrel Service created"
+
+msg_info "Creating publish script"
+cat <<EOF >/var/www/html/$var_project_name/publish.sh
+#!/usr/bin/env bash
+cd /var/www/html/$var_project_name
+dotnet publish -c Release -o /var/www/html/$var_project_name-publish
+systemctl restart umbraco-kestrel.service
+EOF
+chmod +x /var/www/html/$var_project_name/publish.sh
+msg_ok "Publish script created"
+
+msg_info "Building and publishing project (Patience)"
+$STD /var/www/html/$var_project_name/publish.sh
+msg_ok "Umbraco published successfully"
 
 motd_ssh
 customize
