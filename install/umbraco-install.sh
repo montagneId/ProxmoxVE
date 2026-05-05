@@ -179,7 +179,6 @@ Description=Umbraco CMS running on Linux
 [Service]
 WorkingDirectory=/var/www/html/$var_project_name-publish
 ExecStart=/usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000"
-ExecStartPost=/usr/local/bin/umbraco-cleanup-unattended.sh
 Restart=always
 RestartSec=10
 KillSignal=SIGINT
