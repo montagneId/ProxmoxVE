@@ -62,6 +62,7 @@ cd /var/www/html/$var_project_name
 
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 
+msg_info "Configuring database connection"
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   $STD dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
   $STD dotnet add package Our.Umbraco.PostgreSql
@@ -83,7 +84,7 @@ else
     }
   }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
 fi
-msg_ok "Project Created"
+msg_ok "Database connection configured"
 
 {
   if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
@@ -112,7 +113,6 @@ server {
   listen [::]:443 ssl default_server;
   ssl_certificate /etc/nginx/certificate/nginx-certificate.crt;
   ssl_certificate_key /etc/nginx/certificate/nginx.key;
-  server_name   html.com *.html.com;
   location / {
       proxy_pass         https://127.0.0.1:7000/;
       proxy_http_version 1.1;
@@ -172,6 +172,7 @@ dotnet publish -c Release -o /var/www/html/$var_project_name-publish
 systemctl restart umbraco-kestrel.service
 EOF
 chmod +x /var/www/html/$var_project_name/publish.sh
+msg_ok "Publish script created"
 
 msg_info "Building and publishing project (Patience)"
 $STD /var/www/html/$var_project_name/publish.sh
