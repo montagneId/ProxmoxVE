@@ -13,6 +13,8 @@ setting_up_container
 network_check
 update_os
 
+var_project_name="cms"
+
 msg_info "Installing Dependencies"
 $STD apt-get update
 $STD apt-get install -y \
@@ -25,8 +27,6 @@ wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
 chmod +x dotnet-install.sh
 $STD ./dotnet-install.sh --channel 10.0 --install-dir /usr/share/dotnet
 rm dotnet-install.sh
-
-# Create symlinks for global access
 ln -sf /usr/share/dotnet/dotnet /usr/bin/dotnet
 export DOTNET_ROOT=/usr/share/dotnet
 export PATH=$PATH:$DOTNET_ROOT
@@ -35,9 +35,7 @@ msg_info "Installing Nginx"
 $STD apt-get install -y nginx
 msg_ok "Installed Dependencies"
 
-var_project_name="cms"
-
-read -r -p "${TAB3}Would you like to remote database connection? <y/N> " prompt
+read -r -p "${TAB3}Use remote database connection and use PostgreSQL? <y/N> " prompt
 
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   PG_VERSION="17" setup_postgresql
@@ -83,10 +81,7 @@ else
 fi
 msg_ok "Project Created"
 
-msg_info "Building and publishing project (Patience)"
-cd /var/www/html/$var_project_name
-$STD dotnet publish -c Release -o /var/www/html/$var_project_name-publish
-msg_ok "Umbraco published successfully"
+
 
 {
   if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
@@ -149,7 +144,6 @@ Description=Umbraco CMS running on Linux
 WorkingDirectory=/var/www/html/$var_project_name-publish
 ExecStart=/usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000"
 Restart=always
-# Restart service after 10 seconds if the dotnet service crashes:
 RestartSec=10
 KillSignal=SIGINT
 SyslogIdentifier=umbraco
@@ -168,7 +162,7 @@ EOF
 systemctl enable -q --now umbraco-kestrel
 msg_ok "Umbraco Kestrel Service Created"
 
-msg_info "Creating Auto-Publish Service"
+msg_info "Creating publish script"
 cat <<EOF >/var/www/html/$var_project_name/publish.sh
 #!/usr/bin/env bash
 cd /var/www/html/$var_project_name
@@ -177,37 +171,9 @@ systemctl restart umbraco-kestrel.service
 EOF
 chmod +x /var/www/html/$var_project_name/publish.sh
 
-cat <<EOF >/etc/systemd/system/umbraco-autopublish.service
-[Unit]
-Description=Umbraco Auto-Publish Service
-After=network.target
-
-[Service]
-Type=oneshot
-ExecStart=/var/www/html/$var_project_name/publish.sh
-User=root
-Environment=DOTNET_NOLOGO=true
-Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-cat <<EOF >/etc/systemd/system/umbraco-autopublish.path
-[Unit]
-Description=Monitor Umbraco Source Directory for Changes
-
-[Path]
-PathModified=/var/www/html/$var_project_name
-Unit=umbraco-autopublish.service
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload
-systemctl enable -q --now umbraco-autopublish.path
-msg_ok "Auto-Publish Service Created"
+msg_info "Building and publishing project (Patience)"
+$STD /var/www/html/$var_project_name/publish.sh
+msg_ok "Umbraco published successfully"
 
 motd_ssh
 customize
