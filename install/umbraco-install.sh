@@ -30,29 +30,33 @@ rm dotnet-install.sh
 ln -sf /usr/share/dotnet/dotnet /usr/bin/dotnet
 export DOTNET_ROOT=/usr/share/dotnet
 export PATH=$PATH:$DOTNET_ROOT
+msg_ok "Installed .NET SDK"
 
 msg_info "Installing Nginx"
 $STD apt-get install -y nginx
-msg_ok "Installed Dependencies"
+msg_ok "Installed Nginx"
 
 read -r -p "${TAB3}Use remote database connection and use PostgreSQL? <y/N> " prompt
 
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
+  msg_info "Setting up PostgreSQL (Patience)"
   PG_VERSION="17" setup_postgresql
   PG_DB_NAME="${var_project_name}_db" PG_DB_USER="${var_project_name}_user" PG_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
   setup_postgresql_db
+  msg_ok "PostgreSQL setup completed"
   
-  msg_info "Configuring PostgreSQL for remote connections"
+  msg_info "Configuring remote connections"
   sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/17/main/postgresql.conf
   echo "host    all             all             0.0.0.0/0               scram-sha-256" >> /etc/postgresql/17/main/pg_hba.conf
   systemctl restart postgresql
   msg_ok "PostgreSQL configured for remote access"
 fi
 
-msg_info "Installing Umbraco templates and project (Patience)"
+msg_info "Installing Umbraco templates and create new project (Patience)"
 cd /var/www/html
 $STD dotnet new install Umbraco.Templates
 $STD dotnet new umbraco --force -n "$var_project_name"
+msg_ok "Umbraco templates installed and project created"
 
 cd /var/www/html/$var_project_name
 
