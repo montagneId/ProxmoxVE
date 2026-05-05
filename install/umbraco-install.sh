@@ -62,29 +62,50 @@ cd /var/www/html/$var_project_name
 
 UMBRACO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 
-msg_info "Configuring database connection"
+msg_info "Configuring database connection and unattended setup"
+apt-get install -y jq &>/dev/null
+
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   $STD dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
   $STD dotnet add package Our.Umbraco.PostgreSql
-  apt-get install -y jq &>/dev/null
   jq --arg dbname "$PG_DB_NAME" \
     --arg dbuser "$PG_DB_USER" \
-    --arg dbpass "$PG_DB_PASS" '. + {
+    --arg dbpass "$PG_DB_PASS" \
+    --arg umbracopass "$UMBRACO_PASS" '. + {
     "ConnectionStrings": {
       "umbracoDbDSN": ("Host=localhost;Port=5432;SSL Mode=Allow;Database=" + $dbname + ";Username=" + $dbuser + ";Password=" + $dbpass),
       "umbracoDbDSN_ProviderName": "Npgsql2"
+    },
+    "Umbraco": {
+      "CMS": {
+        "Unattended": {
+          "InstallUnattended": true,
+          "UnattendedUserName": "admin",
+          "UnattendedUserEmail": "admin@umbraco.local",
+          "UnattendedUserPassword": $umbracopass
+        }
+      }
     }
   }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
 else
-  apt-get install -y jq &>/dev/null
-  jq '. + {
+  jq --arg umbracopass "$UMBRACO_PASS" '. + {
     "ConnectionStrings": {
       "umbracoDbDSN": "Data Source=|DataDirectory|/Umbraco.sqlite.db;Cache=Shared;Foreign Keys=True;Pooling=True",
       "umbracoDbDSN_ProviderName": "Microsoft.Data.Sqlite"
+    },
+    "Umbraco": {
+      "CMS": {
+        "Unattended": {
+          "InstallUnattended": true,
+          "UnattendedUserName": "admin",
+          "UnattendedUserEmail": "admin@umbraco.local",
+          "UnattendedUserPassword": $umbracopass
+        }
+      }
     }
   }' /var/www/html/$var_project_name/appsettings.json > /tmp/appsettings.tmp && mv /tmp/appsettings.tmp /var/www/html/$var_project_name/appsettings.json
 fi
-msg_ok "Database connection configured"
+msg_ok "Database connection and unattended setup configured"
 
 {
   if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
@@ -137,6 +158,19 @@ openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out nginx-cert
 systemctl reload nginx
 msg_ok "Nginx Server created"
 
+msg_info "Creating cleanup script for unattended config"
+cat <<'EOF' >/usr/local/bin/umbraco-cleanup-unattended.sh
+#!/usr/bin/env bash
+sleep 45
+APPSETTINGS_FILE="/var/www/html/cms-publish/appsettings.json"
+if [ -f "$APPSETTINGS_FILE" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    jq 'del(.Umbraco.CMS.Unattended)' "$APPSETTINGS_FILE" > "${APPSETTINGS_FILE}.tmp" && mv "${APPSETTINGS_FILE}.tmp" "$APPSETTINGS_FILE"
+  fi
+fi
+EOF
+chmod +x /usr/local/bin/umbraco-cleanup-unattended.sh
+
 msg_info "Creating Kestrel Umbraco Service"
 cat <<EOF >/etc/systemd/system/umbraco-kestrel.service
 [Unit]
@@ -145,6 +179,7 @@ Description=Umbraco CMS running on Linux
 [Service]
 WorkingDirectory=/var/www/html/$var_project_name-publish
 ExecStart=/usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000"
+ExecStartPost=/usr/local/bin/umbraco-cleanup-unattended.sh
 Restart=always
 RestartSec=10
 KillSignal=SIGINT
@@ -153,10 +188,6 @@ User=root
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_NOLOGO=true
 Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
-Environment=Umbraco__CMS__Unattended__InstallUnattended=true
-Environment=Umbraco__CMS__Unattended__UnattendedUserName=admin
-Environment=Umbraco__CMS__Unattended__UnattendedUserEmail=admin@umbraco.local
-Environment=Umbraco__CMS__Unattended__UnattendedUserPassword=$UMBRACO_PASS
 
 [Install]
 WantedBy=multi-user.target
@@ -168,6 +199,7 @@ msg_info "Creating publish script"
 cat <<EOF >/var/www/html/$var_project_name/publish.sh
 #!/usr/bin/env bash
 cd /var/www/html/$var_project_name
+cp -f appsettings.json /var/www/html/$var_project_name-publish/appsettings.json
 dotnet publish -c Release -o /var/www/html/$var_project_name-publish
 systemctl restart umbraco-kestrel.service
 EOF
