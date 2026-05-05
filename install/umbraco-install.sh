@@ -135,7 +135,7 @@ cd /etc/nginx/certificate
 openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out nginx-certificate.crt -keyout nginx.key -subj "/C=NL/ST=State/L=City/O=Organization/CN=localhost" &>/dev/null
 
 systemctl reload nginx
-msg_ok "Nginx Server Created"
+msg_ok "Nginx Server created"
 
 msg_info "Creating Kestrel Umbraco Service"
 cat <<EOF >/etc/systemd/system/umbraco-kestrel.service
@@ -162,7 +162,7 @@ Environment=Umbraco__CMS__Unattended__UnattendedUserPassword=$UMBRACO_PASS
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now umbraco-kestrel
-msg_ok "Umbraco Kestrel Service Created"
+msg_ok "Umbraco Kestrel Service created"
 
 msg_info "Creating publish script"
 cat <<EOF >/var/www/html/$var_project_name/publish.sh
