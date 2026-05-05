@@ -159,17 +159,36 @@ systemctl reload nginx
 msg_ok "Nginx Server created"
 
 msg_info "Creating cleanup script for unattended config"
-cat <<'EOF' >/usr/local/bin/umbraco-cleanup-unattended.sh
+cat <<EOF >/usr/local/bin/umbraco-cleanup-unattended.sh
 #!/usr/bin/env bash
-sleep 45
-APPSETTINGS_FILE="/var/www/html/cms-publish/appsettings.json"
-if [ -f "$APPSETTINGS_FILE" ]; then
-  if command -v jq >/dev/null 2>&1; then
-    jq 'del(.Umbraco.CMS.Unattended)' "$APPSETTINGS_FILE" > "${APPSETTINGS_FILE}.tmp" && mv "${APPSETTINGS_FILE}.tmp" "$APPSETTINGS_FILE"
+sleep 30
+for APPSETTINGS_FILE in "/var/www/html/$var_project_name/appsettings.json" "/var/www/html/$var_project_name-publish/appsettings.json"; do
+  if [ -f "\$APPSETTINGS_FILE" ]; then
+    if command -v jq >/dev/null 2>&1; then
+      jq 'del(.Umbraco.CMS.Unattended)' "\$APPSETTINGS_FILE" > "\${APPSETTINGS_FILE}.tmp" && mv "\${APPSETTINGS_FILE}.tmp" "\$APPSETTINGS_FILE"
+    fi
   fi
-fi
+done
 EOF
 chmod +x /usr/local/bin/umbraco-cleanup-unattended.sh
+
+msg_info "Creating Kestrel startup script"
+cat <<EOF >/usr/local/bin/umbraco-start.sh
+#!/usr/bin/env bash
+# Start Umbraco
+/usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000" &
+DOTNET_PID=\$!
+
+# Wait for service to be ready
+sleep 5
+
+# Warm-up request to prevent cold start
+curl -k -s https://127.0.0.1:7000 > /dev/null 2>&1 || true
+
+# Wait for dotnet process
+wait \$DOTNET_PID
+EOF
+chmod +x /usr/local/bin/umbraco-start.sh
 
 msg_info "Creating Kestrel Umbraco Service"
 cat <<EOF >/etc/systemd/system/umbraco-kestrel.service
@@ -178,7 +197,8 @@ Description=Umbraco CMS running on Linux
 
 [Service]
 WorkingDirectory=/var/www/html/$var_project_name-publish
-ExecStart=/usr/bin/dotnet /var/www/html/$var_project_name-publish/$var_project_name.dll --urls "https://0.0.0.0:7000"
+ExecStart=/usr/local/bin/umbraco-start.sh
+#ExecStartPost=/usr/local/bin/umbraco-cleanup-unattended.sh
 Restart=always
 RestartSec=10
 KillSignal=SIGINT
