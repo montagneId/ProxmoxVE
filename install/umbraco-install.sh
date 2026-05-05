@@ -16,12 +16,13 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get update
 $STD apt-get install -y \
-  ssh \
   curl \
   wget
 
 msg_info "Adding Microsoft .NET repository"
-wget https://packages.microsoft.com/config/debian/$(lsb_release -rs | cut -d. -f1)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+DEBIAN_VERSION=$(lsb_release -rs)
+DEBIAN_MAJOR="${DEBIAN_VERSION%%.*}"
+wget https://packages.microsoft.com/config/debian/${DEBIAN_MAJOR}/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 $STD dpkg -i packages-microsoft-prod.deb
 rm packages-microsoft-prod.deb
 msg_ok "Microsoft .NET repository added"
